@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
-using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Crypto.Parameters;
+using System.Text;
+using Konscious.Security.Cryptography;
 
 namespace Mirror;
 
@@ -24,17 +24,14 @@ public static class AuthGate
 
     public static byte[] Derive(string password, byte[] salt)
     {
-        var gen = new Argon2BytesGenerator();
-        gen.Init(new Argon2Parameters.Builder(Argon2Parameters.Argon2id)
-            .WithVersion(Argon2Parameters.Version13)
-            .WithIterations(Iterations)
-            .WithMemoryAsKB(MemoryKiB)
-            .WithParallelism(Parallelism)
-            .WithSalt(salt)
-            .Build());
-        var outBytes = new byte[HashLen];
-        gen.GenerateBytes(System.Text.Encoding.UTF8.GetBytes(password), outBytes, 0, outBytes.Length);
-        return outBytes;
+        using var argon2 = new Argon2id(Encoding.UTF8.GetBytes(password))
+        {
+            Salt = salt,
+            DegreeOfParallelism = Parallelism,
+            Iterations = Iterations,
+            MemorySize = MemoryKiB, // en KiB
+        };
+        return argon2.GetBytes(HashLen);
     }
 
     public static void SetPassword(AppConfig cfg, string password)

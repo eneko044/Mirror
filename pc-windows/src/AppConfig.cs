@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Mirror;
 
 /// <summary>
-/// Configuración del front-end. Se guarda en %APPDATA%\Mirror\config.json.
+/// Configuración del front-end. Se guarda en %APPDATA%\<AppName>\config.json.
 /// No guarda la contraseña en claro: solo un verificador derivado (ver AuthGate).
 /// </summary>
 public sealed class AppConfig
@@ -52,7 +52,7 @@ public sealed class AppConfig
     public string? PasswordSaltB64 { get; set; }
 
     private static string ConfigDir =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Mirror");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Branding.AppName);
     private static string ConfigPath => Path.Combine(ConfigDir, "config.json");
 
     public static AppConfig Load()

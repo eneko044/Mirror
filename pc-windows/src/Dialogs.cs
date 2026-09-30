@@ -29,7 +29,7 @@ internal static class Dialogs
     {
         using var f = new Form
         {
-            Text = "Mirror — configuración inicial",
+            Text = Branding.AppName + " — configuración inicial",
             FormBorderStyle = FormBorderStyle.FixedDialog,
             StartPosition = FormStartPosition.CenterScreen,
             MaximizeBox = false, MinimizeBox = false,
@@ -61,12 +61,12 @@ internal static class Dialogs
             if (f.ShowDialog() != DialogResult.OK) return false;
             if (pass1.Text.Length < 8)
             {
-                MessageBox.Show("La contraseña debe tener al menos 8 caracteres.", "Mirror");
+                MessageBox.Show("La contraseña debe tener al menos 8 caracteres.", Branding.AppName);
                 continue;
             }
             if (pass1.Text != pass2.Text)
             {
-                MessageBox.Show("Las contraseñas no coinciden.", "Mirror");
+                MessageBox.Show("Las contraseñas no coinciden.", Branding.AppName);
                 continue;
             }
             cfg.Mode = modeHot.Checked ? ConnectionMode.Hotspot

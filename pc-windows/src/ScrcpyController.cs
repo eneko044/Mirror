@@ -24,8 +24,8 @@ public sealed class ScrcpyController : IDisposable
         _cfg = cfg;
         _adbPath = Path.Combine(toolsDir, "adb.exe");
         _scrcpyPath = Path.Combine(toolsDir, "scrcpy.exe");
-        // Título único para poder localizar exactamente NUESTRA ventana.
-        _windowTitle = "MV_" + Guid.NewGuid().ToString("N")[..8];
+        // Título único (aleatorio y sin marca) para localizar NUESTRA ventana.
+        _windowTitle = Guid.NewGuid().ToString("N")[..12];
     }
 
     /// <summary>Prepara la conexión ADB según el modo (USB / hotspot / wireless).</summary>

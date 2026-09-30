@@ -10,7 +10,7 @@ internal static class Program
     private static void Main()
     {
         // Una sola instancia.
-        _singleInstance = new Mutex(true, "Mirror_SingleInstance_9f3a", out bool isNew);
+        _singleInstance = new Mutex(true, "Local_SingleInstance_9f3a", out bool isNew);
         if (!isNew) return;
 
         ApplicationConfiguration.Initialize();
@@ -28,15 +28,15 @@ internal static class Program
             int attempts = 0;
             while (true)
             {
-                var pw = Dialogs.AskPassword("Mirror", "Introduce la contraseña:");
+                var pw = Dialogs.AskPassword(Branding.AppName, "Introduce la contraseña:");
                 if (pw is null) return; // cancelado
                 if (AuthGate.Verify(cfg, pw)) break;
                 if (++attempts >= 5)
                 {
-                    MessageBox.Show("Demasiados intentos. Se cierra.", "Mirror");
+                    MessageBox.Show("Demasiados intentos. Se cierra.", Branding.AppName);
                     return;
                 }
-                MessageBox.Show($"Contraseña incorrecta ({attempts}/5).", "Mirror");
+                MessageBox.Show($"Contraseña incorrecta ({attempts}/5).", Branding.AppName);
             }
         }
 
@@ -48,7 +48,7 @@ internal static class Program
             MessageBox.Show(
                 "No encuentro scrcpy.exe / adb.exe en la carpeta 'tools'.\n" +
                 "Descarga scrcpy (incluye adb) y copia su contenido en:\n" + toolsDir,
-                "Mirror — faltan herramientas");
+                Branding.AppName + " — faltan herramientas");
             return;
         }
 
@@ -59,7 +59,7 @@ internal static class Program
             {
                 MessageBox.Show(
                     $"No estás conectado al hotspot esperado ('{cfg.RequiredSsid}').\n" +
-                    "Conéctate a esa red y vuelve a abrir.", "Mirror");
+                    "Conéctate a esa red y vuelve a abrir.", Branding.AppName);
                 return;
             }
         }
@@ -70,7 +70,7 @@ internal static class Program
         string? err = scrcpy.PrepareConnectionAsync().GetAwaiter().GetResult();
         if (err is not null)
         {
-            MessageBox.Show(err, "Mirror — conexión");
+            MessageBox.Show(err, Branding.AppName + " — conexión");
             return;
         }
 
@@ -99,7 +99,7 @@ internal static class Program
         {
             Icon = SystemIcons.Application,
             Visible = true,
-            Text = "Mirror",
+            Text = Branding.AppName,
             ContextMenuStrip = menu,
         };
     }
