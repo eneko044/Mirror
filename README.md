@@ -1,71 +1,62 @@
 # Mirror
 
 Espejo (mirror) y control remoto de un móvil Android desde un PC Windows, con
-transporte cifrado de extremo a extremo y ventana protegida contra captura de
-pantalla. Misma categoría que scrcpy / Vysor / Android Auto proyectado, pero con
-foco en privacidad sobre redes no confiables.
+foco en privacidad sobre redes no confiables. Misma idea que scrcpy / Vysor /
+Android Auto proyectado, pero envuelto en un front-end discreto: ventana
+**ingrabable**, toggle con **Enter del numpad + NumLock** y animación, volteo,
+contraseña y **modo hotspot**.
 
 > **Lee `docs/SECURITY.md` antes de confiar en esto para nada serio.** Ahí está
 > el modelo de amenazas y, sobre todo, lo que este proyecto **NO** protege.
 
+## Arquitectura
+
+- **Motor:** [scrcpy](https://github.com/Genymobile/scrcpy) (open source) hace el
+  espejo + control + **apagado real del panel** del móvil, vía **ADB**. Sin root,
+  sin tocar Knox, y funciona con **todas** tus apps.
+- **Front-end (este repo):** app Windows (.NET 8, WinForms) que envuelve scrcpy y
+  añade toda la capa de privacidad y la experiencia de uso.
+
 ## Qué hace
 
-- El móvil captura su pantalla (`MediaProjection`, sin root) y la codifica en
-  H.264 por hardware (`MediaCodec`) con baja latencia.
-- El flujo viaja **cifrado** (X25519 + ChaCha20-Poly1305, clave raíz derivada de
-  tu contraseña con Argon2id) por la red local.
-- El PC lo descifra, lo decodifica (FFmpeg) y lo muestra en una ventana.
-- Desde el PC controlas el móvil con ratón y teclado. El móvil ejecuta los
-  toques/gestos mediante un **Servicio de Accesibilidad** (sin root).
-- La ventana del PC usa `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` y la
-  app de Android usa `FLAG_SECURE`: las grabadoras/capturas por software del
-  propio sistema ven **negro** en esa ventana.
-- Modo "pantalla apagada" en el móvil: overlay negro a pantalla completa (parece
-  apagada) mientras sigues interactuando desde el PC.
+- 🪟 **Ventana ingrabable:** `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`.
+  Grabar la pantalla del PC o hacer captura → esa ventana sale **negra**.
+- ⌨️ **Toggle discreto:** con **NumLock activado**, el **Enter del numpad** hace
+  aparecer/desaparecer el móvil deslizándose desde la esquina inferior derecha.
+  Con NumLock apagado, ese Enter funciona normal.
+- 🔄 **Voltear / rotar** desde el icono de bandeja.
+- 🔒 **Contraseña** (Argon2id) con bloqueo por intentos.
+- 🔌 **Modo hotspot:** conectas el PC al hotspot del móvil → la red vigilada del
+  edificio queda **totalmente fuera del circuito**. Opción de "solo desde esa
+  red" (`RequiredSsid`).
+- 🚫 Sin permisos de administrador. Sin rastro sensible en disco.
 
 ## Qué NO hace (importante)
 
-- **No** te hace invisible. Una foto con otra cámara, o una capturadora de
-  hardware en el cable de vídeo, siguen viendo la pantalla. La protección es
+- **No** te hace invisible. Una **foto con otra cámara**, o una **capturadora de
+  hardware** en el cable de vídeo, siguen viendo la pantalla. La protección es
   contra captura **por software** en la máquina.
-- **No** apaga el panel físico del móvil de verdad sin root/ADB. El "apagado" es
-  un overlay.
-- **No** oculta *que existe una conexión*. Un observador de red ve que dos
-  dispositivos intercambian tráfico cifrado (no ve el contenido, pero ve el
-  flujo). Si necesitas ocultar también el metadato, eso es otro problema (Tor,
-  túneles) y está fuera del alcance de esta herramienta.
+- **No** oculta el *metadato* de que existe una conexión (salvo en modo hotspot/
+  USB, donde la red vigilada simplemente no ve nada). No es una herramienta para
+  derrotar sistemas de vigilancia; es para que tu contenido sea ilegible.
+- Apps con `FLAG_SECURE` (banca, Netflix) se ven **negras** en el espejo: lo
+  bloquea Android, no Mirror.
 
 ## Estructura
 
 ```
-protocol/        Especificación e implementación del handshake y cifrado (compartido)
-android-app/     App Android (Kotlin, Gradle)  -> genera el APK
-pc-windows/      App Windows (C# .NET 8, WinForms) -> genera el EXE
-docs/            SECURITY.md (modelo de amenazas), PROTOCOL.md, BUILD.md
+pc-windows/      App Windows (C# .NET 8, WinForms) -> genera Mirror.exe
+docs/            SECURITY.md, PROTOCOL.md, BUILD.md
 ```
 
-## Compilar
+## Empezar
 
-No se compila en este repositorio de desarrollo (es Linux). Cada parte se
-compila en su entorno:
+Todo el detalle (preparar el móvil, compilar, añadir scrcpy, usar) está en
+**`docs/BUILD.md`**.
 
-- **APK:** ver `docs/BUILD.md` → sección Android. Necesitas Android Studio o el
-  SDK + Gradle.
-- **EXE:** ver `docs/BUILD.md` → sección Windows. Necesitas .NET 8 SDK. No
-  requiere permisos de administrador para ejecutarse.
-
-## Uso rápido
-
-1. Instala el APK en el móvil y el EXE en el PC (misma red).
-2. Primera vez: la app te pide crear una **contraseña**. La misma contraseña se
-   introduce en el PC. Esa contraseña es la raíz de confianza del cifrado.
-3. En el móvil pulsa "Mirror online". En el PC, introduce IP + contraseña y
-   conecta.
-4. Concede a la app de Android el permiso de captura y activa el Servicio de
-   Accesibilidad (una sola vez).
-
-## Estado
-
-Proyecto base funcional. Cada módulo indica en su cabecera qué está
-implementado y qué requiere pruebas en dispositivo real. Ver
-`docs/BUILD.md` para el detalle.
+Resumen:
+1. Activa Depuración USB en el móvil (o Depuración inalámbrica para hotspot).
+2. `cd pc-windows && dotnet build -c Release`.
+3. Copia scrcpy+adb en una carpeta `tools` junto a `Mirror.exe`.
+4. Abre `Mirror.exe`, crea la contraseña, elige modo. NumLock + Enter del numpad
+   para mostrar/ocultar.
