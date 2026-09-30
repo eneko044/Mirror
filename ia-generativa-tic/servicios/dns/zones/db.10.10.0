@@ -1,0 +1,12 @@
+$TTL 3600
+@   IN  SOA ns1.empresa.internal. hostmaster.empresa.internal. (
+            2026093001 3600 900 604800 300 )
+    IN  NS  ns1.empresa.internal.
+
+1   IN  PTR gateway.empresa.internal.
+22  IN  PTR sftp.empresa.internal.
+33  IN  PTR db.empresa.internal.
+50  IN  PTR impresora.empresa.internal.
+53  IN  PTR ns1.empresa.internal.
+67  IN  PTR dhcp.empresa.internal.
+80  IN  PTR web.empresa.internal.

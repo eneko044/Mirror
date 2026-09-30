@@ -1,0 +1,20 @@
+$TTL 3600
+@   IN  SOA ns1.empresa.internal. hostmaster.empresa.internal. (
+            2026093001 ; serie (AAAAMMDDnn)
+            3600       ; refresh
+            900        ; retry
+            604800     ; expire
+            300 )      ; TTL negativo
+    IN  NS  ns1.empresa.internal.
+
+; Servidores (IPs fijas, fuera del pool DHCP .100-.199)
+gateway   IN  A      10.10.0.1
+sftp      IN  A      10.10.0.22
+db        IN  A      10.10.0.33
+ns1       IN  A      10.10.0.53
+dhcp      IN  A      10.10.0.67
+web       IN  A      10.10.0.80
+impresora IN  A      10.10.0.50   ; reserva DHCP por MAC
+
+www       IN  CNAME  web
+intranet  IN  CNAME  web
