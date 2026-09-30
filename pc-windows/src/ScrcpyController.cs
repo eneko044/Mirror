@@ -33,7 +33,7 @@ public sealed class ScrcpyController : IDisposable
     {
         if (_cfg.Mode == ConnectionMode.Usb)
         {
-            var devices = await RunAdbAsync("devices");
+            var devices = await RunAdbAsync("devices").ConfigureAwait(false);
             if (!devices.Contains("\tdevice"))
                 return "No hay ningún móvil por USB con depuración autorizada.";
             return null;
@@ -43,7 +43,7 @@ public sealed class ScrcpyController : IDisposable
         if (string.IsNullOrWhiteSpace(_cfg.DeviceAddress))
             return "Falta la dirección del móvil (ip:puerto) para conexión inalámbrica.";
 
-        var res = await RunAdbAsync($"connect {_cfg.DeviceAddress}");
+        var res = await RunAdbAsync($"connect {_cfg.DeviceAddress}").ConfigureAwait(false);
         if (!res.Contains("connected"))
             return $"No se pudo conectar por ADB a {_cfg.DeviceAddress}: {res.Trim()}";
         return null;
@@ -155,9 +155,9 @@ public sealed class ScrcpyController : IDisposable
             RedirectStandardError = true,
         };
         using var p = Process.Start(psi)!;
-        string outp = await p.StandardOutput.ReadToEndAsync();
-        string err = await p.StandardError.ReadToEndAsync();
-        await p.WaitForExitAsync();
+        string outp = await p.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        string err = await p.StandardError.ReadToEndAsync().ConfigureAwait(false);
+        await p.WaitForExitAsync().ConfigureAwait(false);
         return outp + err;
     }
 

@@ -22,6 +22,7 @@ public sealed class HostForm : Form
     private double _animT;          // 0..1
     private DateTime _animStart;
     private bool _reshowAfterAttach; // recordar visibilidad al voltear
+    private bool _starting;          // evita doble arranque bajo demanda
 
     public HostForm(AppConfig cfg, ScrcpyController scrcpy)
     {
@@ -56,8 +57,8 @@ public sealed class HostForm : Form
         {
             RegisterToggleHotkey();
         }
-        _scrcpy.Start();
-        _attachTimer.Start();
+        // No se arranca scrcpy aquí: se arranca BAJO DEMANDA al pulsar el toggle.
+        // Así la app puede estar abierta sin el móvil conectado y sin ningún aviso.
     }
 
     private void RegisterToggleHotkey()
@@ -80,13 +81,15 @@ public sealed class HostForm : Form
             // Empieza fuera de pantalla (abajo) y oculta.
             _scrcpy.MoveResize(x, ScreenBottom(), w, h, show: false);
             _state = PanelState.Hidden;
+            // Al arrancar bajo demanda (o tras voltear) se muestra automáticamente.
             if (_reshowAfterAttach) { _reshowAfterAttach = false; TogglePanel(); }
-            else if (!_cfg.StartHidden) TogglePanel();
         }
         else if (!_scrcpy.IsRunning)
         {
-            // scrcpy murió al arrancar (p. ej. sin conexión): reintenta arrancar una vez.
+            // scrcpy murió (p. ej. el móvil se desconectó): dejarlo listo para
+            // reintentar en el próximo toggle, en silencio.
             _attachTimer.Stop();
+            _reshowAfterAttach = false;
         }
     }
 
@@ -102,21 +105,51 @@ public sealed class HostForm : Form
 
     private void TogglePanel()
     {
-        if (_scrcpy.WindowHandle == IntPtr.Zero) return;
-        switch (_state)
+        // Caso 1: ya hay ventana enganchada -> alternar mostrar/ocultar con animación.
+        if (_scrcpy.WindowHandle != IntPtr.Zero && _scrcpy.IsRunning)
         {
-            case PanelState.Hidden:
-            case PanelState.Hiding:
-                _state = PanelState.Showing;
-                _scrcpy.SetVisible(true);
-                StartAnim();
-                break;
-            case PanelState.Visible:
-            case PanelState.Showing:
-                _state = PanelState.Hiding;
-                StartAnim();
-                break;
+            switch (_state)
+            {
+                case PanelState.Hidden:
+                case PanelState.Hiding:
+                    _state = PanelState.Showing;
+                    _scrcpy.SetVisible(true);
+                    StartAnim();
+                    break;
+                case PanelState.Visible:
+                case PanelState.Showing:
+                    _state = PanelState.Hiding;
+                    StartAnim();
+                    break;
+            }
+            return;
         }
+
+        // Caso 2: scrcpy ya se está arrancando (esperando su ventana) -> no hacer nada.
+        if (_starting || _attachTimer.Enabled) return;
+
+        // Caso 3: no está corriendo -> intentar arrancar bajo demanda.
+        // Si el móvil no está conectado, no ocurre nada (sin avisos).
+        TryStartOnDemand();
+    }
+
+    /// <summary>
+    /// Arranca scrcpy solo si hay móvil conectado. Silencioso: si no lo hay,
+    /// no muestra ningún aviso y no pasa nada. Al enganchar la ventana, se muestra.
+    /// </summary>
+    private void TryStartOnDemand()
+    {
+        _starting = true;
+        try
+        {
+            string? err = _scrcpy.PrepareConnectionAsync().GetAwaiter().GetResult();
+            if (err != null) return;      // no hay móvil / no conecta -> silencio
+            _reshowAfterAttach = true;    // al enganchar la ventana, mostrarla
+            _scrcpy.Start();
+            _attachTimer.Start();
+        }
+        catch { /* cualquier fallo -> en silencio, sin avisos */ }
+        finally { _starting = false; }
     }
 
     private void StartAnim()
@@ -169,6 +202,8 @@ public sealed class HostForm : Form
 
     public void FlipPanel()
     {
+        // Solo tiene sentido si el espejo está en marcha.
+        if (!_scrcpy.IsRunning || _scrcpy.WindowHandle == IntPtr.Zero) return;
         _reshowAfterAttach = _state is PanelState.Visible or PanelState.Showing;
         _animTimer.Stop();
         _scrcpy.Flip();

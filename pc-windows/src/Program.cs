@@ -66,18 +66,13 @@ internal static class Program
 
         var scrcpy = new ScrcpyController(cfg, toolsDir);
 
-        // Preparar conexión ADB (USB / hotspot / wifi) antes de arrancar el espejo.
-        string? err = scrcpy.PrepareConnectionAsync().GetAwaiter().GetResult();
-        if (err is not null)
-        {
-            MessageBox.Show(err, Branding.AppName + " — conexión");
-            return;
-        }
-
+        // NO se comprueba la conexión aquí: la app arranca en silencio aunque el
+        // móvil no esté conectado. El espejo se arranca al pulsar el toggle
+        // (NumLock + Enter del numpad); si no hay móvil, no pasa nada.
         var host = new HostForm(cfg, scrcpy);
         using var tray = BuildTray(cfg, host);
 
-        // Fuerza la creación del handle (arranca hook/atajo y scrcpy) sin mostrar la ventana.
+        // Fuerza la creación del handle (registra el hook/atajo) sin mostrar la ventana.
         _ = host.Handle;
 
         Application.Run(); // bucle de mensajes; la ventana anfitriona es invisible
