@@ -20,9 +20,12 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
         $dotnet = $userDotnet
     } else {
         Write-Host "[1/3] No hay .NET SDK. Lo instalo en tu usuario (sin admin)..."
-        $script = Join-Path $env:TEMP "dotnet-install.ps1"
+        # Descargar dentro del proyecto (ruta valida): %TEMP% puede ser una ruta
+        # corta 8.3 que no resuelve en usuarios con punto (p. ej. nombre.apellido).
+        $script = Join-Path $PSScriptRoot "dotnet-install.ps1"
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile $script
         & $script -Channel 8.0 -InstallDir (Join-Path $env:USERPROFILE ".dotnet")
+        Remove-Item $script -Force -ErrorAction SilentlyContinue
         $dotnet = $userDotnet
     }
 }
@@ -53,8 +56,9 @@ if (Test-Path (Join-Path $toolsDir "scrcpy.exe")) {
         $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/Genymobile/scrcpy/releases/latest' -Headers $h
         $asset = $rel.assets | Where-Object { $_.name -match 'scrcpy-win64-.*\.zip' } | Select-Object -First 1
         if (-not $asset) { throw "No encuentro el zip win64 de scrcpy" }
-        $zip = Join-Path $env:TEMP "scrcpy.zip"
-        $tmp = Join-Path $env:TEMP "scrcpy_tmp"
+        # Descargar dentro del proyecto (ruta valida), no en %TEMP% (puede ser ruta corta que no resuelve).
+        $zip = Join-Path $PSScriptRoot "scrcpy.zip"
+        $tmp = Join-Path $PSScriptRoot "scrcpy_tmp"
         Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip -Headers $h
         if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
         Expand-Archive -Path $zip -DestinationPath $tmp -Force
